@@ -3,174 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🎡 Chiếc Nón Kỳ Diệu 🎁</title>
-    <style>
-      body {
-        background: radial-gradient(circle at center, #2b2b2b, #0d0d0d);
-        font-family: "Poppins", sans-serif;
-        text-align: center;
-        color: #fff;
-        margin: 0;
-        padding-top: 30px;
-      }
-      h2 {
-        font-size: 28px;
-        font-weight: 700;
-        margin-bottom: 20px;
-      }
-      #wheelContainer {
-        position: relative;
-        width: 350px;
-        height: 350px;
-        margin: 0 auto;
-        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
-      }
-      canvas {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background: #fff;
-      }
-      /* 🧭 Kim đỏ chuyển sang TRÁI */
-      #pointer {
-        position: absolute;
-        right: -20px;
-        top: 50%;
-        transform: translateY(-50%) rotate(180deg);
-        width: 0;
-        height: 0;
-        border-top: 15px solid transparent;
-        border-bottom: 15px solid transparent;
-        border-left: 25px solid #ff2d2d;
-        filter: drop-shadow(0 0 4px #ff2d2d);
-      }
-      button {
-        margin-top: 25px;
-        background: #ff6600;
-        color: #fff;
-        font-size: 18px;
-        border: none;
-        border-radius: 10px;
-        padding: 12px 35px;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        transition: 0.2s;
-      }
-      button:hover {
-        background: #ffa600;
-      }
-      button:disabled {
-        background: #555;
-        cursor: not-allowed;
-      }
-      #result {
-        margin-top: 25px;
-        font-size: 18px;
-      }
-    </style>
+    <title>Vòng quay may mắn Kendamil</title>
+    <link
+      href="https://fonts.googleapis.com/css?family=Baloo"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h2>🎡 Chiếc Nón Kỳ Diệu 🎁</h2>
-    <div id="wheelContainer">
-      <canvas id="wheel" width="350" height="350"></canvas>
-      <div id="pointer"></div>
+    <div class="container">
+      <!-- Ảnh nền có thể thay bằng ảnh của bạn -->
+      <div class="background"></div>
+
+      <h1 class="title"><img class="title-img" src="./assets/title.png" /></h1>
+      <div class="container-wheel">
+        <div id="pointer"></div>
+        <div class="sub-wheel-container">
+          <canvas id="wheel"></canvas>
+          <div class="center-icon">
+            <img src="./assets/crown.png" alt="Crown Icon" />
+          </div>
+        </div>
+      </div>
+
+      <button id="spin-btn">CHẠM ĐỂ QUAY</button>
+      <p class="brand"><img src="./assets/logo.png" /></p>
     </div>
 
-    <button id="spin">Quay ngay!</button>
-    <p id="result"></p>
-
-    <script>
-      // =================== CẤU HÌNH ===================
-      const prizes = [
-        { text: "Voucher 10%", color: "#2980b9" },
-        { text: "Voucher 20%", color: "#27ae60" },
-        { text: "Áo thun", color: "#f1c40f" },
-        { text: "Móc khóa", color: "#e67e22" },
-        { text: "Không trúng", color: "#c0392b" },
-        { text: "Giảm 50%", color: "#8e44ad" },
-      ];
-
-      const canvas = document.getElementById("wheel");
-      const ctx = canvas.getContext("2d");
-      const size = canvas.width;
-      const radius = size / 2;
-      const numSegments = prizes.length;
-      const arcSize = (2 * Math.PI) / numSegments;
-      let currentAngle = 0;
-      let spinning = false;
-
-      function drawWheel() {
-        ctx.clearRect(0, 0, size, size);
-        prizes.forEach((p, i) => {
-          const start = i * arcSize + currentAngle;
-          const end = start + arcSize;
-          ctx.beginPath();
-          ctx.moveTo(radius, radius);
-          ctx.arc(radius, radius, radius, start, end);
-          ctx.fillStyle = p.color;
-          ctx.fill();
-          ctx.save();
-          ctx.translate(radius, radius);
-          ctx.rotate(start + arcSize / 2);
-          ctx.textAlign = "right";
-          ctx.fillStyle = "#fff";
-          ctx.font = "bold 18px Poppins";
-          ctx.fillText(p.text, radius - 10, 8);
-          ctx.restore();
-        });
-      }
-
-      const spinBtn = document.getElementById("spin");
-      const result = document.getElementById("result");
-      const psid = new URLSearchParams(window.location.search).get("psid");
-      const playedKey = "played_" + psid;
-
-      drawWheel();
-
-      if (localStorage.getItem(playedKey)) {
-        spinBtn.disabled = true;
-        result.innerHTML = "⚠️ Bạn đã quay rồi. Hẹn bạn lần sau!";
-      }
-
-      spinBtn.onclick = () => {
-        if (spinning) return;
-        if (localStorage.getItem(playedKey)) {
-          alert("Bạn đã quay rồi!");
-          return;
-        }
-
-        spinning = true;
-        spinBtn.disabled = true;
-
-        const spins = 8;
-        const randomAngle = Math.random() * 2 * Math.PI;
-        const totalAngle = spins * 2 * Math.PI + randomAngle;
-        const duration = 5000;
-        const start = performance.now();
-
-        function animate(time) {
-          const elapsed = time - start;
-          const progress = Math.min(elapsed / duration, 1);
-          const easeOut = 1 - Math.pow(1 - progress, 3);
-          currentAngle = totalAngle * easeOut;
-          drawWheel();
-
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            const index =
-              Math.floor(
-                numSegments - (currentAngle % (2 * Math.PI)) / arcSize
-              ) % numSegments;
-            const prize = prizes[index].text;
-            result.innerHTML = `🎉 Bạn nhận được: <b>${prize}</b> 🎁`;
-            localStorage.setItem(playedKey, "true");
-            spinning = false;
-          }
-        }
-
-        requestAnimationFrame(animate);
-      };
-    </script>
+    <script src="script.js"></script>
   </body>
 </html>

@@ -1,0 +1,113 @@
+body {
+  font-family: "Baloo", sans-serif;
+  text-align: center;
+  background-color: #e8f3fc;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("assets/background.png");
+  background-size: cover;
+  /* opacity: 0.15; */
+  z-index: -1;
+}
+
+.title {
+  color: #1c3d8a;
+  font-weight: 800;
+  margin-bottom: 20px;
+  font-size: 26px;
+}
+
+img.title-img {
+  width: 80vw;
+  max-width: 400px;
+  object-fit: contain;
+}
+
+.container-wheel {
+  position: relative;
+}
+
+.sub-wheel-container {
+  position: relative;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+}
+
+#wheel {
+  width: 90vmin;
+  height: 90vmin;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.center-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.center-icon img {
+  width: 76px;
+}
+
+#spin-btn {
+  font-family: "Baloo", sans-serif;
+  font-weight: normal;
+  background-color: #57b0d7;
+  border: none;
+  color: white;
+  padding: 15px 40px;
+  border-radius: 40px;
+  font-size: 26px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#spin-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.brand {
+  font-family: "Georgia", serif;
+  color: #1c3d8a;
+  font-weight: bold;
+  font-size: 22px;
+  margin-top: 10px;
+}
+
+#pointer {
+  position: absolute;
+  width: 33px;
+  height: 45px;
+  background-image: url("assets/arrown.png");
+  z-index: 10;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
