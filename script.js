@@ -2,8 +2,6 @@ const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 const spinBtn = document.getElementById("spin-btn");
 
-const blacklist = [];
-
 // 🔹 Các phần thưởng
 const segments = [
   {
@@ -56,28 +54,11 @@ const segments = [
   },
 ];
 
-const prizeLimits = {
-  "0001": 2,
-  "0002": 5,
-  "0003": 5,
-  "0004": 5,
-  "0005": 5,
-  "0006": 5,
-  "0008": 5,
-  "0007": 9999,
-};
-
 function getPrizeCount(code) {
   return parseInt(localStorage.getItem("count_" + code) || "0");
 }
 
-// 🔹 Thông số vòng quay
-let startAngle = 0;
-const arc = (2 * Math.PI) / segments.length;
-let spinAngle = 0;
-let spinning = false;
-
-// 🔹 Kích thước & tâm canvas (R = 200)
+// Kích thước & tâm canvas (R = 200)
 const radius = 200;
 const center = radius + 20; // chừa viền ngoài
 canvas.width = center * 2;
@@ -125,7 +106,7 @@ async function drawWheel() {
     ctx.fillStyle = "#061F60";
     ctx.font = "12px Baloo";
 
-    // 🔹 Tách chữ theo độ rộng cho phép
+    // Tách chữ theo độ rộng cho phép
     const words = segments[i].text.split(" ");
     const lines = [];
     let currentLine = words[0];
@@ -142,13 +123,13 @@ async function drawWheel() {
     }
     lines.push(currentLine);
 
-    // 🔹 Vẽ từng dòng, canh giữa
+    // Vẽ từng dòng, canh giữa
     const totalHeight = lineHeight * lines.length;
     for (let k = 0; k < lines.length; k++) {
       ctx.fillText(lines[k], 0, -textRadius - totalHeight / 2 + k * lineHeight);
     }
 
-    // 🔹 Vẽ ảnh nếu có
+    // Vẽ ảnh nếu có
     const img = imageCache[segments[i].image];
     if (img) {
       const imgSize = 50; // kích thước ảnh
@@ -182,15 +163,7 @@ function drawPointer() {
   };
 }
 
-function getSelectedIndex() {
-  const pointerAngle = -Math.PI / 2;
-  let relativeAngle = pointerAngle - startAngle;
-  relativeAngle =
-    ((relativeAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-  const index = Math.floor(relativeAngle / arc);
-  return (index + segments.length) % segments.length;
-}
-
+// Hiển thị phần thưởng khi dừng
 function showPrize(prize) {
   const oldPopup = document.getElementById("prize-popup");
   if (oldPopup) oldPopup.remove();
@@ -224,12 +197,12 @@ function showPrize(prize) {
   // Bắn pháo hoa từ hai bên
   if (prize.code !== "0007") launchSideFireworks(4000);
 
-  // Ẩn popup sau 4s
+  // Ẩn popup sau 10s
   setTimeout(() => {
     popup.style.transition = "opacity 0.5s";
     popup.style.opacity = "0";
     setTimeout(() => popup.remove(), 500);
-  }, 5000);
+  }, 10000);
 }
 
 // Hiệu ứng pháo hoa từ hai bên (đè lên phần thưởng)
@@ -308,62 +281,18 @@ function launchSideFireworks(duration = 4000) {
   animate();
 }
 
-// Lấy subscriber_id từ URL
+// Lấy contactId từ URL
 const urlParams = new URLSearchParams(window.location.search);
-const subscriberId =
-  urlParams.get("mc_id") || urlParams.get("subscriber_id") || null;
-const playedKey = "played_" + subscriberId;
-const result = document.getElementById("result");
+const contactId = urlParams.get("contact_id") || null;
 
-// Giả sử sau khi người chơi hoàn thành trò chơi:
-function sendResultToManyChat(subscriberId, prize) {
-  const apiKey = "9596298:45a160ad72e6a65222e8d3d3f0249484";
+let spinning = false;
+let startAngle = 0;
+const arc = (2 * Math.PI) / segments.length; // góc mỗi ô
+const spinDuration = 10000;
+const totalRounds = 20;
+const fps = 60;
 
-  if (!subscriberId) {
-    console.warn("No subscriber id - không gửi ManyChat:", prize);
-    return;
-  }
-
-  let message = "";
-  if (prize.code == "0007") {
-    message = `Tiếc quá 🙁 mẹ chưa trúng thưởng rồi, mẹ theo dõi fanpage để cập nhật minigame hấp dẫn khác nhé`;
-  } else if (prize.code == "0001") {
-    message = `Chúc mừng mẹ đã trúng phần quà 2 tháng sử dụng Kendamil miễn phí, mỗi tháng tối đa 3 lon. Mẹ hãy để lại thông tin họ tên, sđt và địa chỉ nhận hàng để Kendamil gửi quà tới mẹ nha.`;
-  } else {
-    message = `Chúc mừng mẹ đã trúng phần quà ${prize.text}. Mẹ hãy để lại thông tin họ tên, sđt và địa chỉ nhận hàng để Kendamil gửi quà tới mẹ nha.`;
-  }
-
-  fetch("https://api.manychat.com/fb/sending/sendContent", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      subscriber_id: subscriberId,
-      data: {
-        version: "v2",
-        content: {
-          messages: [
-            {
-              type: "text",
-              text: message,
-            },
-          ],
-        },
-      },
-    }),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      console.log("✅ Đã gửi kết quả về ManyChat:", data);
-    })
-    .catch((error) => {
-      console.error("❌ Lỗi khi gửi ManyChat:", error);
-    });
-}
-
-function rotateWheel() {
+async function rotateWheel() {
   startAngle += (spinAngle * Math.PI) / 180;
   spinAngle *= 0.97;
   drawWheel();
@@ -373,32 +302,45 @@ function rotateWheel() {
     // Khi dừng, xác định phần thưởng nằm tại pointer và hiển thị/gửi
     spinning = false;
 
-    const selectedIndex = getSelectedIndex();
+    const selectedIndex = await getSelectedIndex();
     const prize = segments[selectedIndex];
-    // Hiển thị cho người dùng
     showPrize(prize);
-    localStorage.setItem(playedKey, "true");
-    // Gửi về ManyChat (nếu có subscriberId)
-    sendResultToManyChat(subscriberId, prize);
+    confirmPrize(contactId, prize);
+  }
+}
+// Giả sử sau khi người chơi hoàn thành trò chơi:
+async function confirmPrize(contactId, prize) {
+  try {
+    await fetch("http://localhost:3000/api/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId, prize })
+    });
+  } catch (err) {
+    console.error(err);
   }
 }
 
 drawWheel();
 
-if (localStorage.getItem(playedKey)) {
-  spinBtn.disabled = true;
-  alert("⚠️ Bạn đã quay rồi. Hẹn bạn lần sau!");
+async function getSelectedIndex() {
+  try {
+    const prize = await fetch("http://localhost:3000/api/spin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId })
+    });
+    const data = await prize.json();
+    return data.index;
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 spinBtn.addEventListener("click", () => {
-  if (localStorage.getItem(playedKey)) {
-    alert("⚠️ Bạn đã quay rồi. Hẹn bạn lần sau!");
-    return;
-  }
   if (spinning) return;
   spinAngle = 20 + Math.random() * 20;
   spinning = true;
   spinBtn.disabled = true;
   rotateWheel();
-  blacklist.push(subscriberId);
 });
