@@ -189,7 +189,6 @@ async function initWheel() {
 initWheel();
 
 spinBtn.addEventListener("click", async () => {
-  spinning = true;
   selectedPrizeIndex = await getSelectedIndex();
   if (selectedPrizeIndex != null) {
     rotateWheel(selectedPrizeIndex);
