@@ -4,6 +4,9 @@ body {
   background-color: #e8f3fc;
   margin: 0;
   padding: 0;
+  width: 100vw;
+  height: 100vh;
+  justify-items: center;
 }
 
 .container {
@@ -12,20 +15,20 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  max-width: 800px;
 }
 
 .background {
-  position: absolute;
+  position: fixed; /* Cố định khi cuộn trang */
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url("assets/background.png");
-  background-size: cover;
-  /* opacity: 0.15; */
-  z-index: -1;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover; /* Giúp ảnh phủ kín mà không méo */
+  z-index: -1; /* Đưa ảnh ra sau nội dung */
+  opacity: 0.5; /* Độ mờ tùy chỉnh */
 }
+
 
 .title {
   color: #1c3d8a;
@@ -61,7 +64,6 @@ img.title-img {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #fff;
   border-radius: 50%;
   width: 70px;
   height: 70px;
@@ -80,11 +82,11 @@ img.title-img {
   background-color: #57b0d7;
   border: none;
   color: white;
-  padding: 15px 40px;
   border-radius: 40px;
   font-size: 26px;
   cursor: pointer;
   transition: 0.3s;
+  padding: 10px 25px;
 }
 
 #spin-btn:disabled {
