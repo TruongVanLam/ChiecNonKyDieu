@@ -2,6 +2,7 @@ const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 const spinBtn = document.getElementById("spin-btn");
 import { segments } from "./gifts.js";
+const baseUrl = "https://cnkdbe.vercel.app";
 
 // Kích thước & tâm canvas (R = 200)
 const radius = 200;
@@ -24,7 +25,6 @@ function loadImage(src) {
     };
   });
 }
-Promise.all(segments.map((seg) => seg.image && loadImage(seg.image)));
 
 // Lấy contactId từ URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -32,10 +32,10 @@ const contactId = urlParams.get("contact_id") || null;
 
 // Quay bánh xe
 const arc = (2 * Math.PI) / segments.length; // góc mỗi ô
-let spinning = false;
 let currentAngle = 0;
 
 function drawWheel() {
+  Promise.all(segments.map((seg) => seg.image && loadImage(seg.image)));
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let i = 0; i < segments.length; i++) {
     const start = i * arc + currentAngle;
@@ -123,7 +123,7 @@ function drawPointer() {
 async function rotateWheel(selectedIndex) {
   const spins = 6;
   const prizeAngle = selectedIndex * arc + arc / 2;
-  const stopAngle = (3 * Math.PI - prizeAngle + (Math.PI / 2)) % (2 * Math.PI);
+  const stopAngle = (3 * Math.PI - prizeAngle + Math.PI / 2) % (2 * Math.PI);
   const totalAngle = spins * 2 * Math.PI + stopAngle;
 
   const duration = 5000;
@@ -150,10 +150,10 @@ async function rotateWheel(selectedIndex) {
 async function confirmPrize() {
   const prize = segments[selectedPrizeIndex];
   try {
-    await fetch("http://localhost:3000/api/confirm", {
+    await fetch(`${baseUrl}/api/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId, prize })
+      body: JSON.stringify({ contactId, prize }),
     });
   } catch (err) {
     console.error(err);
@@ -162,10 +162,10 @@ async function confirmPrize() {
 
 async function getSelectedIndex() {
   try {
-    const prize = await fetch("http://localhost:3000/api/spin", {
+    const prize = await fetch(`${baseUrl}/api/spin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId })
+      body: JSON.stringify({ contactId }),
     });
     const data = await prize.json();
     if (data?.error) {
@@ -189,9 +189,7 @@ async function initWheel() {
 initWheel();
 
 spinBtn.addEventListener("click", async () => {
-  // if (spinning) return;
   spinning = true;
-  // spinBtn.disabled = true;
   selectedPrizeIndex = await getSelectedIndex();
   if (selectedPrizeIndex != null) {
     rotateWheel(selectedPrizeIndex);
