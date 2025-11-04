@@ -1,62 +1,7 @@
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 const spinBtn = document.getElementById("spin-btn");
-
-// 🔹 Các phần thưởng
-const segments = [
-  {
-    text: "GIẢI ĐỘC ĐẮC",
-    color: "#F7DADF",
-    code: "0001",
-    image: "assets/img-0001.png",
-  },
-  {
-    text: "BÌNH TRỮ SỮA KENDAMIL",
-    color: "#FFF8EB",
-    code: "0002",
-    image: "assets/img-0002.png",
-  },
-  {
-    text: "KHĂN DỊU ÊM",
-    color: "#F7DADF",
-    code: "0003",
-    image: "assets/img-0003.png",
-  },
-  {
-    text: "TÚI KENDAMIL",
-    color: "#FFF8EB",
-    code: "0004",
-    image: "assets/img-0004.png",
-  },
-  {
-    text: "THÌA BÁO NÓNG 2 ĐẦU",
-    color: "#F7DADF",
-    code: "0005",
-    image: "assets/img-0005.png",
-  },
-  {
-    text: "TÚI KENDAMIL & KHĂN DỊU ÊM",
-    color: "#FFF8EB",
-    code: "0006",
-    image: "assets/img-0006.png",
-  },
-  {
-    text: "CHÚC BẠN MAY MẮN LẦN SAU",
-    color: "#F7DADF",
-    code: "0007",
-    image: "assets/img-0007.png",
-  },
-  {
-    text: "BÌNH TRỮ SỮA & KHĂN DỊU ÊM",
-    color: "#FFF8EB",
-    code: "0008",
-    image: "assets/img-0008.png",
-  },
-];
-
-function getPrizeCount(code) {
-  return parseInt(localStorage.getItem("count_" + code) || "0");
-}
+import { segments } from "./gifts.js";
 
 // Kích thước & tâm canvas (R = 200)
 const radius = 200;
@@ -64,7 +9,10 @@ const center = radius + 20; // chừa viền ngoài
 canvas.width = center * 2;
 canvas.height = center * 2;
 
+let selectedPrizeIndex = null;
+
 const imageCache = {};
+
 function loadImage(src) {
   return new Promise((resolve) => {
     if (imageCache[src]) return resolve(imageCache[src]);
@@ -76,24 +24,32 @@ function loadImage(src) {
     };
   });
 }
+Promise.all(segments.map((seg) => seg.image && loadImage(seg.image)));
 
-async function drawWheel() {
+// Lấy contactId từ URL
+const urlParams = new URLSearchParams(window.location.search);
+const contactId = urlParams.get("contact_id") || null;
+
+// Quay bánh xe
+const arc = (2 * Math.PI) / segments.length; // góc mỗi ô
+let spinning = false;
+let currentAngle = 0;
+
+function drawWheel() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  await Promise.all(segments.map((seg) => seg.image && loadImage(seg.image)));
-
   for (let i = 0; i < segments.length; i++) {
-    const angle = startAngle + i * arc;
+    const start = i * arc + currentAngle;
+    const end = start + arc;
 
     // Vẽ từng phần
     ctx.beginPath();
     ctx.fillStyle = segments[i].color;
     ctx.moveTo(center, center);
-    ctx.arc(center, center, radius, angle, angle + arc);
+    ctx.arc(center, center, radius, start, end);
     ctx.fill();
 
     // Góc giữa ô
-    const midAngle = angle + arc / 2;
+    const midAngle = start + arc / 2;
     const textRadius = radius - 50; // chữ gần viền
     const maxWidth = 100; // độ rộng tối đa cho 1 dòng chữ
     const lineHeight = 16;
@@ -148,6 +104,7 @@ async function drawWheel() {
 
   drawPointer();
 }
+drawWheel();
 
 function drawPointer() {
   const img = new Image();
@@ -163,8 +120,87 @@ function drawPointer() {
   };
 }
 
+async function rotateWheel(selectedIndex) {
+  const spins = 6;
+  const prizeAngle = selectedIndex * arc + arc / 2;
+  const stopAngle = (3 * Math.PI - prizeAngle + (Math.PI / 2)) % (2 * Math.PI);
+  const totalAngle = spins * 2 * Math.PI + stopAngle;
+
+  const duration = 5000;
+  const start = performance.now();
+  function animate(time) {
+    const elapsed = time - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const easeOut = 1 - Math.pow(1 - progress, 3); // chậm dần
+    currentAngle = totalAngle * easeOut;
+
+    drawWheel(); // vẽ lại bánh xe theo currentAngle
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      showPrize();
+      confirmPrize();
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+// Giả sử sau khi người chơi hoàn thành trò chơi:
+async function confirmPrize() {
+  const prize = segments[selectedPrizeIndex];
+  try {
+    await fetch("http://localhost:3000/api/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId, prize })
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function getSelectedIndex() {
+  try {
+    const prize = await fetch("http://localhost:3000/api/spin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId })
+    });
+    const data = await prize.json();
+    if (data?.error) {
+      alert(data.message);
+      return null;
+    }
+    return data?.index;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function initWheel() {
+  try {
+    selectedPrizeIndex = await getSelectedIndex();
+    drawWheel();
+  } catch (err) {
+    console.error("Failed to get prize:", err);
+  }
+}
+initWheel();
+
+spinBtn.addEventListener("click", async () => {
+  // if (spinning) return;
+  spinning = true;
+  // spinBtn.disabled = true;
+  selectedPrizeIndex = await getSelectedIndex();
+  if (selectedPrizeIndex != null) {
+    rotateWheel(selectedPrizeIndex);
+  }
+});
+
 // Hiển thị phần thưởng khi dừng
-function showPrize(prize) {
+async function showPrize() {
+  const prize = segments[selectedPrizeIndex];
   const oldPopup = document.getElementById("prize-popup");
   if (oldPopup) oldPopup.remove();
 
@@ -202,7 +238,7 @@ function showPrize(prize) {
     popup.style.transition = "opacity 0.5s";
     popup.style.opacity = "0";
     setTimeout(() => popup.remove(), 500);
-  }, 10000);
+  }, 4000);
 }
 
 // Hiệu ứng pháo hoa từ hai bên (đè lên phần thưởng)
@@ -280,67 +316,3 @@ function launchSideFireworks(duration = 4000) {
 
   animate();
 }
-
-// Lấy contactId từ URL
-const urlParams = new URLSearchParams(window.location.search);
-const contactId = urlParams.get("contact_id") || null;
-
-let spinning = false;
-let startAngle = 0;
-const arc = (2 * Math.PI) / segments.length; // góc mỗi ô
-const spinDuration = 10000;
-const totalRounds = 20;
-const fps = 60;
-
-async function rotateWheel() {
-  startAngle += (spinAngle * Math.PI) / 180;
-  spinAngle *= 0.97;
-  drawWheel();
-  if (spinAngle > 0.2) {
-    requestAnimationFrame(rotateWheel);
-  } else {
-    // Khi dừng, xác định phần thưởng nằm tại pointer và hiển thị/gửi
-    spinning = false;
-
-    const selectedIndex = await getSelectedIndex();
-    const prize = segments[selectedIndex];
-    showPrize(prize);
-    confirmPrize(contactId, prize);
-  }
-}
-// Giả sử sau khi người chơi hoàn thành trò chơi:
-async function confirmPrize(contactId, prize) {
-  try {
-    await fetch("http://localhost:3000/api/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId, prize })
-    });
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-drawWheel();
-
-async function getSelectedIndex() {
-  try {
-    const prize = await fetch("http://localhost:3000/api/spin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId })
-    });
-    const data = await prize.json();
-    return data.index;
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-spinBtn.addEventListener("click", () => {
-  if (spinning) return;
-  spinAngle = 20 + Math.random() * 20;
-  spinning = true;
-  spinBtn.disabled = true;
-  rotateWheel();
-});
